@@ -1,4 +1,12 @@
-# Operating Systems Lab 1
+# Operating Systems Labs
+
+- [Lab 1 report](report.md)
+- [Lab 1 terminal session](lab1-session.txt)
+- [Lab 2 report](lab2/README.md)
+- [Lab 2 required notes](lab2/notes.md)
+- [Lab 2 terminal session](lab2/lab2-session.txt)
+
+# Lab 1
 
 ## The OS as a Resource Manager
 
