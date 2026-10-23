@@ -1,0 +1,331 @@
+Lab 6 terminal record. QEMU boot messages and repetitive compiler/build commands were removed; source code, commands, results, and observed errors were retained.
+
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/xv6-riscv
+cat kernel/stat.h
+make qemu
+#define T_DIR    1 // Directory
+#define T_FILE   2 // File
+#define T_DEVICE 3 // Device
+
+struct stat {
+  int dev;     // File system's disk device
+  uint ino;    // Inode number
+  short type;  // Type of file
+  short nlink; // Number of links to file
+  uint64 size; // Size of file in bytes
+};
+
+$ ls
+.              1 1 1024
+..             1 1 1024
+README         2 2 2441
+cat            2 3 36728
+echo           2 4 35592
+forktest       2 5 18136
+grep           2 6 44184
+init           2 7 35976
+kill           2 8 35512
+ln             2 9 35304
+ls             2 10 42880
+mkdir          2 11 35568
+rm             2 12 35552
+sh             2 13 58312
+sleep          2 14 35280
+args           2 15 35272
+stressfs       2 16 36416
+usertests      2 17 206800
+grind          2 18 51824
+wc             2 19 37728
+zombie         2 20 34848
+logstress      2 21 37560
+forphan        2 22 36352
+dorphan        2 23 35800
+sync           2 24 34944
+console        3 25 0
+f              2 26 6
+d              1 27 32
+a              1 28 32
+$ mkdir a
+mkdir: a failed to create
+$ ls a
+.              1 28 32
+..             1 1 1024
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+cat > user/mystat.c << 'EOF'
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "user/user.h"
+
+char *
+typename(int t)
+{
+  if(t == T_DIR)
+    return "directory";
+  if(t == T_FILE)
+    return "file";
+  if(t == T_DEVICE)
+    return "device";
+  return "?";
+}
+
+int
+main(int argc, char *argv[])
+{
+  struct stat st;
+
+  for(int i = 1; i < argc; i++){
+    if(stat(argv[i], &st) < 0){
+      fprintf(2, "mystat: cannot stat %s\n", argv[i]);
+      continue;
+    }
+    printf("%s: %s, inode %d, links %d, size %d bytes\n",
+           argv[i], typename(st.type), st.ino, st.nlink, (int)st.size);
+  }
+  exit(0);
+}
+EOF
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cat > user/find.c << 'EOF'
+#include "kernel/types.h"
+#include "kernel/stat.h"
+#include "kernel/fs.h"
+#include "user/user.h"
+
+// the last component of a path
+char *
+lastname(char *path)
+{
+  char *p;
+
+  for(p = path + strlen(path); p >= path && *p != '/'; p--)
+    ;
+  return p + 1;
+}
+
+void
+find(char *path, char *name, int showino)
+{
+  char buf[512], *p;
+  int fd;
+  struct dirent de;
+  struct stat st;
+
+  if((fd = open(path, 0)) < 0){
+    fprintf(2, "find: cannot open %s\n", path);
+    return;
+  }
+  if(fstat(fd, &st) < 0){
+    fprintf(2, "find: cannot stat %s\n", path);
+    close(fd);
+    return;
+  }
+
+  if(strcmp(lastname(path), name) == 0){
+    if(showino)
+      printf("%s inode %d\n", path, st.ino);
+    else
+      printf("%s\n", path);
+  }
+
+  if(st.type == T_DIR){
+    if(strlen(path) + 1 + DIRSIZ + 1 > sizeof(buf)){
+      fprintf(2, "find: path too long\n");
+      close(fd);
+      return;
+    }
+    strcpy(buf, path);
+    p = buf + strlen(buf);
+    *p++ = '/';
+    while(read(fd, &de, sizeof(de)) == sizeof(de)){
+      if(de.inum == 0)
+        continue;
+      if(strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
+        continue;
+      memmove(p, de.name, DIRSIZ);
+      p[DIRSIZ] = 0;
+      find(buf, name, showino);
+    }
+  }
+  close(fd);
+}
+
+int
+main(int argc, char *argv[])
+{
+  int showino = 0;
+
+  if(argc < 3){
+    fprintf(2, "usage: find <dir> <name> [-n]\n");
+    exit(1);
+  }
+  if(argc == 4 && strcmp(argv[3], "-n") == 0)
+    showino = 1;
+  find(argv[1], argv[2], showino);
+  exit(0);
+}
+EOF
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n "_mystat\|_find" Makefile
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ sed -i 's|^\t\$U/_args\\$|&\n\t$U/_mystat\\\n\t$U/_find\\|' Makefile
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n -A4 '_args\\' Makefile
+145:	$U/_args\
+146-	$U/_mystat\
+147-	$U/_find\
+148-	$U/_stressfs\
+149-	$U/_usertests\
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+balloc: first 1135 blocks have been allocated
+balloc: write bitmap block at sector 46
+
+$ mystat README . console
+exec mystat failed
+$ mystat README . console
+README: file, inode 2, links 1, size 2441 bytes
+.: directory, inode 1, links 1, size 1024 bytes
+console: device, inode 27, links 1, size 0 bytes
+$ ln README r2
+$ mystat README r2
+README: file, inode 2, links 2, size 2441 bytes
+r2: file, inode 2, links 2, size 2441 bytes
+$ rm README
+$ mystat r2
+r2: file, inode 2, links 1, size 2441 bytes
+$ cat r2 | wc
+48 336 2441 
+$ mystat nosuchfile
+mystat: cannot stat nosuchfile
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n "nlink" kernel/sysfile.c
+145:  if (ip->nlink >= NLINK_MAX) {
+151:  ip->nlink++;
+158:  // dp may have been unlinked while we resolved it; linking into an
+160:  // dropping ip->nlink).  create() has the same guard.
+161:  if (dp->nlink == 0) {
+178:  ip->nlink--;
+202:sys_unlink(void)
+220:  // Cannot unlink "." or "..".
+228:  if (ip->nlink < 1)
+229:    panic("unlink: nlink < 1");
+237:    panic("unlink: writei");
+239:    dp->nlink--;
+244:  ip->nlink--;
+269:  if (dp->nlink == 0) {
+274:  // a new directory's ".." would push dp->nlink past its maximum
+275:  if (type == T_DIR && dp->nlink >= NLINK_MAX) {
+297:  ip->nlink = 1;
+301:    // No ip->nlink++ for ".": avoid cyclic ref count.
+311:    dp->nlink++; // for ".."
+321:  ip->nlink = 0;
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n -B2 -A12 "struct dinode" kernel/fs.h
+30-
+31-// On-disk inode structure
+32:struct dinode {
+33-  short type;              // File type
+34-  short major;             // Major device number (T_DEVICE only)
+35-  short minor;             // Minor device number (T_DEVICE only)
+36-  short nlink;             // Number of links to inode in file system
+37-  uint size;               // Size of file (bytes)
+38-  uint addrs[NDIRECT + 1]; // Data block addresses
+39-};
+40-
+41-// Inodes per block.
+42:#define IPB (BSIZE / sizeof(struct dinode))
+43-
+44-// Block containing inode i
+45-#define IBLOCK(i, sb) ((i) / IPB + sb.inodestart)
+46-
+47-// Bitmap bits per block
+48-#define BPB (BSIZE * 8)
+49-
+50-// Block of free map containing bit for block b
+51-#define BBLOCK(b, sb) ((b) / BPB + sb.bmapstart)
+52-
+53-// Directory is a file containing a sequence of dirent structures.
+54-#define DIRSIZ 14
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+grep -n "define BSIZE\|define NDIRECT\|define NINDIRECT\|define DIRSIZ" kernel/fs.h
+make clean ; make fs.img 2>&1 | grep nmeta
+make qemu
+5:#define BSIZE   1024 // block size
+26:#define NDIRECT   12
+27:#define NINDIRECT (BSIZE / sizeof(uint))
+54:#define DIRSIZ 14
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+
+$ mkdir averyveryverylongname
+$ ls
+.              1 1 1024
+..   
+          1 1 1024
+README         2 2 2441
+cat            2 3 36728
+echo           2 4 35592
+forktest       2 5 18136
+grep           2 6 44184
+init           2 7 35976
+kill           2 8 35512
+ln             2 9 35304
+ls             2 10 42880
+mkdir          2 11 35568
+rm             2 12 35552
+sh             2 13 58312
+sleep          2 14 35280
+args           2 15 35272
+mystat         2 16 36320
+find           2 17 43000
+stressfs       2 18 36416
+usertests      2 19 206800
+grind          2 20 51824
+wc             2 21 37728
+zombie         2 22 34848
+logstress      2 23 37560
+forphan        2 24 36352
+dorphan        2 25 35800
+sync           2 26 34944
+console        3 27 0
+averyveryveryl 1 28 32
+$ $ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make clean ; make qemu
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+balloc: first 1135 blocks have been allocated
+balloc: write bitmap block at sector 46
+
+$ mkdir a
+
+$ $ mkdir a
+mkdir: a failed to create
+$ mkdir a
+mkdir: a failed to create
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make clean ; make qemu
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+balloc: first 1135 blocks have been allocated
+balloc: write bitmap block at sector 46
+
+$ mkdir a
+$ mkdir a/b
+$ echo x > a/b/r2
+exec echo failed
+$ echo x > a/b/r2
+$ echo y > a/r2
+$ ln cat r2
+$ find . r2
+./a/b/r2
+./a/r2
+./r2
+$ find a b
+a/b
+$ find . r2 -n
+./a/b/r2 inode 30
+./a/r2 inode 31
+./r2 inode 3
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ mkdir -p ~/lab6
+cp ~/xv6-riscv/user/mystat.c ~/xv6-riscv/user/find.c ~/xv6-riscv/Makefile ~/lab6/
+touch ~/lab6/notes.md
+cp -r ~/lab6 /media/sf_OS-labs/
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ ^C
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+

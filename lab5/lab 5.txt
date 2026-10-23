@@ -1,0 +1,251 @@
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ whoami
+dalvgame
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ cd ~ && bash os2026-setup.sh --check
+OS 2026 setup  system: Ubuntu 26.04.1 LTS  family: debian
+
+==> 2/4  Checking the tools
+[ OK ] git
+[ OK ] make
+[ OK ] gcc
+[ OK ] bash
+[ OK ] grep
+[ OK ] sed
+[ OK ] awk
+[ OK ] RISC-V compiler: riscv64-linux-gnu-gcc
+[ OK ] QEMU 10.2
+
+==> 3/4  xv6 in /home/dalvgame/xv6-riscv
+[ OK ] already present, left as it is (your work is safe)
+
+==> 4/4  Building xv6 and booting it once
+[ OK ] build
+[ OK ] xv6 booted and ran ls
+
+All set. Start xv6 with:  cd ~/xv6-riscv && make qemu
+Leave xv6 with: Ctrl-A, then X.
+dalvgame@dalvgame-VirtualBox:~$ mkdir -p ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~$ touch ~/os-lab5/report.md ~/os-lab5/notes.md
+dalvgame@dalvgame-VirtualBox:~$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls /
+bin   cdrom  etc   lib    lost+found  mnt  proc  run   snap  swap.img  tmp  var
+boot  dev    home  lib64  media       opt  root  sbin  srv   sys       usr
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -ld /etc /etc/passwd /bin /dev/null /tmp
+lrwxrwxrwx   1 root root     7 Apr 20  2026 /bin -> usr/bin
+crw-rw-rw-   1 root root  1, 3 Oct 23 11:18 /dev/null
+drwxr-xr-x 142 root root 12288 Oct 19 11:01 /etc
+-rw-r--r--   1 root root  2778 Oct  5 11:13 /etc/passwd
+drwxrwxrwt  15 root root   380 Oct 23 11:52 /tmp
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -l /dev | head
+total 0
+crw-r--r-- 1 root     root     10, 235 Oct 23 11:18 autofs
+drwxr-xr-x 2 root     root        500 Oct 23 11:19 block
+drwxr-xr-x 2 root     root         80 Oct 23 11:18 bsg
+crw------- 1 root     root     10, 234 Oct 23 11:18 btrfs-control
+drwxr-xr-x 3 root     root         60 Oct 23 11:18 bus
+lrwxrwxrwx+1 root     root          3 Oct 23 11:18 cdrom -> sr0
+drwxr-xr-x 2 root     root       3740 Oct 23 11:19 char
+crw------- 1 root     tty       5,   1 Oct 23 11:18 console
+lrwxrwxrwx 1 root     root         11 Oct 23 11:18 core -> /proc/kcore
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ file /usr/bin/ls /etc/passwd /bin
+/usr/bin/ls: symbolic link to ../lib/cargo/bin/coreutils/ls
+/etc/passwd: ASCII text
+/bin:        symbolic link to usr/bin
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ du -sh /var/log 2>/dev/null ; du -sh /usr 2>/dev/null
+192M	/var/log
+
+^[[A^[[B4.8G	/usr
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ echo hello > notes.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ stat notes.txt
+  File: notes.txt
+  size: 6         	Blocks: 8          IO Block: 4096   regular file
+Device: 8,2	Inode: 1332217     Links: 1
+Access: (0664/-rw-rw-r--)  Uid: ( 1000/dalvgame)   Gid: ( 1000/dalvgame)
+Access: 2026-10-23 11:54:21.974527201 +0300
+Modify: 2026-10-23 11:54:21.669521449 +0300
+Change: 2026-10-23 11:54:21.669521449 +0300
+ Birth: 2026-10-23 11:54:21.669521449 +0300
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -li notes.txt
+1332217 -rw-rw-r-- 1 dalvgame dalvgame 6 Oct 23 11:54 notes.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ln notes.txt hard.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -li notes.txt hard.txt
+1332217 -rw-rw-r-- 2 dalvgame dalvgame 6 Oct 23 11:54 hard.txt
+1332217 -rw-rw-r-- 2 dalvgame dalvgame 6 Oct 23 11:54 notes.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ rm notes.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cat hard.txt ; ls -li hard.txt
+hello
+1332217 -rw-rw-r-- 1 dalvgame dalvgame 6 Oct 23 11:54 hard.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ln -s hard.txt soft.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -li hard.txt soft.txt
+1332217 -rw-rw-r-- 1 dalvgame dalvgame 6 Oct 23 11:54 hard.txt
+1332218 lrwxrwxrwx 1 dalvgame dalvgame 8 Oct 23 11:54 soft.txt -> hard.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cat soft.txt
+hello
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ rm hard.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cat soft.txt ; ls -l soft.txt
+cat: soft.txt: No such file or directory
+lrwxrwxrwx 1 dalvgame dalvgame 8 Oct 23 11:54 soft.txt -> hard.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ mkdir d ; ls -ld d
+mkdir d/x d/y ; ls -ld d
+drwxrwxr-x 2 dalvgame dalvgame 4096 Oct 23 11:55 d
+drwxrwxr-x 4 dalvgame dalvgame 4096 Oct 23 11:55 d
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ echo x > one.txt ; ls -l one.txt ; du -h one.txt
+truncate -s 1G big.img ; ls -lh big.img ; du -h big.img
+rm big.img
+-rw-rw-r-- 1 dalvgame dalvgame 2 Oct 23 11:55 one.txt
+4.0K	one.txt
+-rw-rw-r-- 1 dalvgame dalvgame 1.0G Oct 23 11:55 big.img
+0	big.img
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ echo secret > s.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod 600 s.txt ; ls -l s.txt
+-rw------- 1 dalvgame dalvgame 7 Oct 23 11:56 s.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod 000 s.txt ; cat s.txt
+cat: s.txt: Permission denied
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod u+r s.txt ; cat s.txt
+secret
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ umask ; touch new.txt ; mkdir newdir ; ls -ld new.txt newdir
+0002
+-rw-rw-r-- 1 dalvgame dalvgame    0 Oct 23 11:56 new.txt
+drwxrwxr-x 2 dalvgame dalvgame 4096 Oct 23 11:56 newdir
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ mkdir box ; echo hi > box/f
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod u=r,go= box ; ls box ; cat box/f
+f
+cat: box/f: Permission denied
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod u=x,go= box ; ls box ; cat box/f
+ls: cannot open directory 'box': Permission denied
+hi
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ chmod 755 box
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ ls -l /usr/bin/passwd ; ls -ld /tmp
+cat /etc/shadow
+ls -l /etc/shadow
+-rwsr-xr-x 1 root root 93640 Feb  2  2026 /usr/bin/passwd
+drwxrwxrwt 15 root root 380 Oct 23 11:52 /tmp
+cat: /etc/shadow: Permission denied
+-rw-r----- 1 root shadow 1314 Oct  5 11:22 /etc/shadow
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ lsblk
+df -h
+mount | grep " / "
+grep -c processor /proc/cpuinfo
+head -3 /proc/meminfo
+head -5 /proc/self/status
+ls -l /proc/self/fd
+NAME   MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+loop0    7:0    0  66.8M  1 loop /snap/core24/1643
+loop1    7:1    0     4K  1 loop /snap/bare/5
+loop2    7:2    0    20M  1 loop /snap/desktop-security-center/151
+loop3    7:3    0  16.5M  1 loop /snap/firmware-updater/226
+loop4    7:4    0 614.5M  1 loop /snap/gnome-46-2404/164
+loop5    7:5    0  14.2M  1 loop /snap/desktop-security-center/206
+loop6    7:6    0 260.3M  1 loop /snap/firefox/8763
+loop7    7:7    0   1.5M  1 loop /snap/hwctl/131
+loop8    7:8    0  91.7M  1 loop /snap/gtk-common-themes/1535
+loop9    7:9    0   1.5M  1 loop /snap/hwctl/123
+loop10   7:10   0  18.8M  1 loop /snap/prompting-client/222
+loop11   7:11   0   402M  1 loop /snap/mesa-2404/1839
+loop12   7:12   0    12M  1 loop /snap/snap-store/1447
+loop13   7:13   0  11.8M  1 loop /snap/snap-store/1390
+loop14   7:14   0  18.4M  1 loop /snap/prompting-client/228
+loop15   7:15   0  50.1M  1 loop /snap/snapd/27710
+loop16   7:16   0  44.7M  1 loop /snap/snapd/28254
+loop17   7:17   0   828K  1 loop /snap/snapd-desktop-integration/391
+sda      8:0    0    31G  0 disk
+├─sda1   8:1    0     1M  0 part
+└─sda2   8:2    0    31G  0 part /
+sr0     11:0    1  1024M  1 rom
+Filesystem      Size  Used Avail Use% Mounted on
+tmpfs           680M  2.4M  678M   1% /run
+/dev/sda2        31G   12G   18G  40% /
+tmpfs           1.7G     0  1.7G   0% /dev/shm
+none            1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+tmpfs           1.7G  8.0K  1.7G   1% /tmp
+none            1.0M     0  1.0M   0% /run/credentials/systemd-resolved.service
+OS-labs         166G  161G  4.7G  98% /media/sf_OS-labs
+tmpfs           340M   84K  340M   1% /run/user/1000
+/dev/sda2 on / type ext4 (rw,relatime)
+2
+MemTotal:        3480328 kB
+MemFree:          377240 kB
+MemAvailable:    1355588 kB
+Name:	head
+Umask:	0002
+State:	R (running)
+Tgid:	10254
+Ngid:	0
+total 0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23  2026 0 -> /dev/pts/0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23  2026 1 -> /dev/pts/0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23  2026 2 -> /dev/pts/0
+lr-x------ 1 dalvgame dalvgame 64 Oct 23  2026 3 -> /proc/10255/fd
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ gzip -c /etc/passwd > notes.txt ; file notes.txt ; xxd notes.txt | head -1
+notes.txt: gzip compressed data, was "passwd", last modified: Mon Oct  5 08:13:07 2026, from Unix, original size modulo 2^32 2778
+00000000: 1f8b 0808 135c c36a 0003 7061 7373 7764  .....\.j..passwd
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ truncate -s 100M bigfile
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ exec 3< bigfile ; rm bigfile ; ls -l /proc/$$/fd
+total 0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23 11:57 0 -> /dev/pts/0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23 11:57 1 -> /dev/pts/0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23 11:57 2 -> /dev/pts/0
+lrwx------ 1 dalvgame dalvgame 64 Oct 23 11:57 255 -> /dev/pts/0
+lr-x------ 1 dalvgame dalvgame 64 Oct 23 11:57 3 -> '/home/dalvgame/os-lab5/bigfile (deleted)'
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ df -h .
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2        31G   12G   18G  40% /
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ exec 3<&-
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ df -h .
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/sda2        31G   12G   18G  40% /
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ find / -xdev -perm -4000 -type f 2>/dev/null
+/usr/bin/ntfs-3g
+/usr/bin/sudo.ws
+/usr/bin/gpasswd
+/usr/bin/fusermount3
+/usr/bin/chsh
+/usr/bin/pkexec
+/usr/bin/passwd
+/usr/bin/chfn
+/usr/bin/umount
+/usr/bin/mount
+/usr/bin/su
+/usr/sbin/pppd
+/usr/lib/openssh/ssh-keysign
+/usr/lib/dbus-1.0/dbus-daemon-launch-helper
+/usr/lib/cargo/bin/sudo
+/usr/lib/cargo/bin/su
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~/os-lab5
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ truncate -s 64M disk.img ; mkfs.ext4 disk.img
+sudo mkdir -p /mnt ; sudo mount -o loop disk.img /mnt
+df -h /mnt ; df -i /mnt
+sudo umount /mnt
+mke2fs 1.47.2 (1-Jan-2025)
+Discarding device blocks: done
+Creating filesystem with 16384 4k blocks and 16384 inodes
+
+Allocating group tables: done
+Writing inode tables: done
+Creating journal (1024 blocks): done
+Writing superblocks and filesystem accounting information: done
+
+[sudo: authenticate] Password:
+Filesystem      Size  Used Avail Use% Mounted on
+/dev/loop18      56M  152K   52M   1% /mnt
+Filesystem     Inodes IUsed IFree IUse% Mounted on
+/dev/loop18     16384    12 16372    1% /mnt
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cp -r ~/os-lab5 /media/sf_OS-labs/
+cp: cannot create symbolic link '/media/sf_OS-labs/os-lab5/soft.txt': Operation not permitted
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ cd ~
+tar czf /media/sf_OS-labs/os-lab5.tar.gz os-lab5
+ls -lh /media/sf_OS-labs/os-lab5.tar.gz
+-rwxrwx--- 1 root vboxsf 67K Oct 23 11:59 /media/sf_OS-labs/os-lab5.tar.gz
+dalvgame@dalvgame-VirtualBox:~$ mkdir -p /media/sf_OS-labs/os-lab5
+cd ~/os-lab5
+cp -r --no-preserve=all $(ls | grep -v soft.txt) /media/sf_OS-labs/os-lab5/
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ sudo umount /mnt
+umount: /mnt: not mounted.
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ mkdir -p ~/SO/lab5
+cp ~/os-lab5/report.md ~/os-lab5/session.txt ~/SO/lab5/
+cp: cannot stat '/home/dalvgame/os-lab5/session.txt': No such file or directory
+dalvgame@dalvgame-VirtualBox:~/os-lab5$ rm -f ~/os-lab5/disk.img
+dalvgame@dalvgame-VirtualBox:~/os-lab5$
