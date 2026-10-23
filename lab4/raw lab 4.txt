@@ -1,0 +1,414 @@
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+grep -n "pause\|sleep" user/user.h
+25:int pause(int);
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cat > user/sleep.c << 'EOF'
+#include "kernel/types.h"
+#include "user/user.h"
+
+
+int
+main(int argc, char *argv[])
+{
+  if(argc != 2){
+    fprintf(2, "usage: sleep <ticks>\n");
+    exit(1);
+  }
+  pause(atoi(argv[1]));   // was sleep() before Aug 2025
+  exit(0);
+}
+EOF
+cat > user/args.c << 'EOF'
+#include "kernel/types.h"
+#include "user/user.h"
+
+
+int
+main(int argc, char *argv[])
+{
+  printf("argc = %d\n", argc);
+  for(int i = 0; i < argc; i++)
+    printf("argv[%d] = [%s]\n", i, argv[i]);
+  exit(0);
+}
+EOF
+grep -n "_sleep\|_args" Makefile
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ sed -i 's|^\t\$U/_sh\\$|&\n\t$U/_sleep\\\n\t$U/_args\\|' Makefile
+grep -n -A3 '_sh\\' Makefile
+143:    $U/_sh\
+144-    $U/_sleep\
+145-    $U/_args\
+146-    $U/_stressfs\
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/sleep.o user/sleep.c
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_sleep user/sleep.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+riscv64-linux-gnu-objdump -S user/_sleep > user/sleep.asm
+riscv64-linux-gnu-objdump -t user/_sleep | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/sleep.sym
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/args.o user/args.c
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_args user/args.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+riscv64-linux-gnu-objdump -S user/_args > user/args.asm
+riscv64-linux-gnu-objdump -t user/_args | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/args.sym
+mkfs/mkfs fs.img README user/_cat user/_echo user/_forktest user/_grep user/_init user/_kill user/_ln user/_ls user/_mkdir user/_rm user/_sh user/_sleep user/_args user/_stressfs user/_usertests user/_grind user/_wc user/_zombie user/_logstress user/_forphan user/_dorphan user/_sync 
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+balloc: first 1055 blocks have been allocated
+balloc: write bitmap block at sector 46
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+xv6 kernel is booting
+
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ sleep 20
+$ sleep
+usage: sleep <ticks>
+$ mkdir -p ~/shtest && cd ~/shtest && touch README
+echo hello > f ; cat < f
+ls | grep READ
+(echo a; echo b) | wc
+echo one ; echo t $HOME
+echo "a b"
+mleftovers: cd ~/shtest && touch README
+
+
+syntax
+$ hello
+$ README         2 2 2441
+$ 2 2 4 
+$ one
+t $HOME
+$ "a b"
+$ cd ~/xv6-riscv && make qemu
+leftovers: make qemu
+
+
+syntax
+$ cd ~/xv6-riscv && make qemu
+leftovers: make qemu
+
+
+syntax
+$ echo hello > f ; cat < f
+hello
+$ ls | grep READ
+README         2 2 2441
+$ (echo a; echo b) | wc
+2 2 4 
+$ echo one ; echo two
+one
+two
+$ echo bg &
+bg
+$ ls *
+ls: cannot open *
+$ echo $HOME
+$HOME
+$ echo "a b"
+"a b"
+$ mkdir d
+$ cd d
+$ ls ..
+exec ls failed
+$ /ls ..
+.              1 1 1024
+..             1 1 1024
+README         2 2 2441
+cat            2 3 36728
+echo           2 4 35592
+forktest       2 5 18136
+grep           2 6 44184
+init           2 7 35976
+kill           2 8 35512
+ln             2 9 35304
+ls             2 10 42880
+mkdir          2 11 35568
+rm             2 12 35552
+sh             2 13 58312
+sleep          2 14 35280
+args           2 15 35272
+stressfs       2 16 36416
+usertests      2 17 206800
+grind          2 18 51824
+wc             2 19 37728
+zombie         2 20 34848
+logstress      2 21 37560
+forphan        2 22 36352
+dorphan        2 23 35800
+sync           2 24 34944
+console        3 25 0
+f              2 26 6
+d              1 27 32
+$ /ls .
+.              1 27 32
+..             1 1 1024
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ mkdir -p ~/shtest && cd ~/shtest && touch README
+echo hello > f ; cat < f
+ls | grep READ
+(echo a; echo b) | wc
+echo one ; echo two
+echo bg &
+ls *
+echo $HOME
+echo "a b"
+mkdir d ; cd d ; ls .. ; cd ..
+hello
+README
+      2       2       4
+one
+two
+[1] 7059
+bg
+README  f
+[1]+  Done                       echo bg
+/home/dalvgame
+a b
+README  d  f
+dalvgame@dalvgame-VirtualBox:~/shtest$ mkdir -p ~/lab4 && cd ~/lab4
+cp ~/xv6-riscv/user/sleep.c ~/xv6-riscv/user/args.c ~/xv6-riscv/Makefile .
+cat > args_linux.c << 'EOF'
+#include <stdio.h>
+
+
+int
+main(int argc, char *argv[])
+{
+  printf("argc = %d\n", argc);
+  for(int i = 0; i < argc; i++)
+    printf("argv[%d] = [%s]\n", i, argv[i]);
+  return 0;
+}
+EOF
+gcc -o args args_linux.c
+./args one two three
+./args *.c "x y"
+./args $HOME
+./args 'single quoted'
+argc = 4
+argv[0] = [./args]
+argv[1] = [one]
+argv[2] = [two]
+argv[3] = [three]
+argc = 5
+argv[0] = [./args]
+argv[1] = [args.c]
+argv[2] = [args_linux.c]
+argv[3] = [sleep.c]
+argv[4] = [x y]
+argc = 2
+argv[0] = [./args]
+argv[1] = [/home/dalvgame]
+argc = 2
+argv[0] = [./args]
+argv[1] = [single quoted]
+dalvgame@dalvgame-VirtualBox:~/lab4$ args one two three
+args *.c "x y"
+args $HOME
+args 'single quoted'
+args * "x y"
+Command 'args' not found, but can be installed with:
+sudo apt install ucommon-utils
+Command 'args' not found, but can be installed with:
+sudo apt install ucommon-utils
+Command 'args' not found, but can be installed with:
+sudo apt install ucommon-utils
+Command 'args' not found, but can be installed with:
+sudo apt install ucommon-utils
+Command 'args' not found, but can be installed with:
+sudo apt install ucommon-utils
+dalvgame@dalvgame-VirtualBox:~/lab4$ cd ~/xv6-riscv && make qemu
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+xv6 kernel is booting
+
+
+hart 1 starting
+hart 2 starting
+init: starting sh
+$ args one two three
+argc = 4
+argv[0] = [args]
+argv[1] = [one]
+argv[2] = [two]
+argv[3] = [three]
+$ args *.c "x y"
+argc = 4
+argv[0] = [args]
+argv[1] = [*.c]
+argv[2] = ["x]
+argv[3] = [y"]
+$ args $HOME
+argc = 2
+argv[0] = [args]
+argv[1] = [$HOME]
+$ args 'single quoted'
+argc = 3
+argv[0] = [args]
+argv[1] = ['single]
+argv[2] = [quoted']
+$ args * "x y"
+argc = 4
+argv[0] = [args]
+argv[1] = [*]
+argv[2] = ["x]
+argv[3] = [y"]
+$ QEMU: Terminated
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+wc -l user/sh.c
+grep -n "#define" user/sh.c
+grep -n "case " user/sh.c
+grep -n "cd" user/sh.c | head
+grep -n '\*\|\$' user/sh.c
+499 user/sh.c
+8:#define EXEC  1
+9:#define REDIR 2
+10:#define PIPE  3
+11:#define LIST  4
+12:#define BACK  5
+14:#define MAXARGS 10
+75:  case EXEC:
+83:  case REDIR:
+93:  case LIST:
+101:  case PIPE:
+125:  case BACK:
+284:  case 0:
+286:  case '|':
+287:  case '(':
+288:  case ')':
+289:  case ';':
+290:  case '&':
+291:  case '<':
+294:  case '>':
+391:    case '<':
+394:    case '>':
+397:    case '+': // >>
+469:  case EXEC:
+475:  case REDIR:
+481:  case PIPE:
+487:  case LIST:
+493:  case BACK:
+170:        fprintf(2, "cannot cd %s\n", cmd + 3);
+22:  char *argv[MAXARGS];
+23:  char *eargv[MAXARGS];
+28:  struct cmd *cmd;
+29:  char *file;
+30:  char *efile;
+37:  struct cmd *left;
+38:  struct cmd *right;
+43:  struct cmd *left;
+44:  struct cmd *right;
+49:  struct cmd *cmd;
+53:void panic(char *);
+54:struct cmd *parsecmd(char *);
+55:void runcmd(struct cmd *) __attribute__((noreturn));
+59:runcmd(struct cmd *cmd)
+62:  struct backcmd *bcmd;
+63:  struct execcmd *ecmd;
+64:  struct listcmd *lcmd;
+65:  struct pipecmd *pcmd;
+66:  struct redircmd *rcmd;
+76:    ecmd = (struct execcmd *)cmd;
+84:    rcmd = (struct redircmd *)cmd;
+94:    lcmd = (struct listcmd *)cmd;
+102:    pcmd = (struct pipecmd *)cmd;
+126:    bcmd = (struct backcmd *)cmd;
+135:getcmd(char *buf, int nbuf)
+137:  write(2, "$ ", 2);
+161:    char *cmd = buf;
+162:    while (*cmd == ' ' || *cmd == '\t')
+164:    if (*cmd == '\n') // is a blank command
+181:panic(char *s)
+201:struct cmd *
+204:  struct execcmd *cmd;
+206:  cmd = malloc(sizeof(*cmd));
+207:  memset(cmd, 0, sizeof(*cmd));
+209:  return (struct cmd *)cmd;
+212:struct cmd *
+213:redircmd(struct cmd *subcmd, char *file, char *efile, int mode, int fd)
+215:  struct redircmd *cmd;
+217:  cmd = malloc(sizeof(*cmd));
+218:  memset(cmd, 0, sizeof(*cmd));
+225:  return (struct cmd *)cmd;
+228:struct cmd *
+229:pipecmd(struct cmd *left, struct cmd *right)
+231:  struct pipecmd *cmd;
+233:  cmd = malloc(sizeof(*cmd));
+234:  memset(cmd, 0, sizeof(*cmd));
+238:  return (struct cmd *)cmd;
+241:struct cmd *
+242:listcmd(struct cmd *left, struct cmd *right)
+244:  struct listcmd *cmd;
+246:  cmd = malloc(sizeof(*cmd));
+247:  memset(cmd, 0, sizeof(*cmd));
+251:  return (struct cmd *)cmd;
+254:struct cmd *
+255:backcmd(struct cmd *subcmd)
+257:  struct backcmd *cmd;
+259:  cmd = malloc(sizeof(*cmd));
+260:  memset(cmd, 0, sizeof(*cmd));
+263:  return (struct cmd *)cmd;
+272:gettoken(char **ps, char *es, char **q, char **eq)
+274:  char *s;
+277:  s = *ps;
+278:  while (s < es && strchr(whitespace, *s))
+281:    *q = s;
+282:  ret = *s;
+283:  switch (*s) {
+296:    if (*s == '>') {
+303:    while (s < es && !strchr(whitespace, *s) && !strchr(symbols, *s))
+308:    *eq = s;
+310:  while (s < es && strchr(whitespace, *s))
+312:  *ps = s;
+317:peek(char **ps, char *es, char *toks)
+319:  char *s;
+321:  s = *ps;
+322:  while (s < es && strchr(whitespace, *s))
+324:  *ps = s;
+325:  return *s && strchr(toks, *s);
+328:struct cmd *parseline(char **, char *);
+329:struct cmd *parsepipe(char **, char *);
+330:struct cmd *parseexec(char **, char *);
+331:struct cmd *nulterminate(struct cmd *);
+333:struct cmd *
+334:parsecmd(char *s)
+336:  char *es;
+337:  struct cmd *cmd;
+350:struct cmd *
+351:parseline(char **ps, char *es)
+353:  struct cmd *cmd;
+367:struct cmd *
+368:parsepipe(char **ps, char *es)
+370:  struct cmd *cmd;
+380:struct cmd *
+381:parseredirs(struct cmd *cmd, char **ps, char *es)
+384:  char *q, *eq;
+405:struct cmd *
+406:parseblock(char **ps, char *es)
+408:  struct cmd *cmd;
+421:struct cmd *
+422:parseexec(char **ps, char *es)
+424:  char *q, *eq;
+426:  struct execcmd *cmd;
+427:  struct cmd *ret;
+433:  cmd = (struct execcmd *)ret;
+455:struct cmd *
+456:nulterminate(struct cmd *cmd)
+459:  struct backcmd *bcmd;
+460:  struct execcmd *ecmd;
+461:  struct listcmd *lcmd;
+462:  struct pipecmd *pcmd;
+463:  struct redircmd *rcmd;
+470:    ecmd = (struct execcmd *)cmd;
+472:      *ecmd->eargv[i] = 0;
+476:    rcmd = (struct redircmd *)cmd;
+478:    *rcmd->efile = 0;
+482:    pcmd = (struct pipecmd *)cmd;
+488:    lcmd = (struct listcmd *)cmd;
+494:    bcmd = (struct backcmd *)cmd;
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cp ~/xv6-riscv/user/sleep.c ~/xv6-riscv/user/args.c ~/xv6-riscv/Makefile ~/lab4/
+rm -f ~/lab4/args
+cp -r ~/lab4 /media/sf_OS-labs/
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$

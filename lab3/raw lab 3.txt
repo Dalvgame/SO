@@ -1,0 +1,276 @@
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ ls ~/os-lab3
+access.log  err.txt   oneliners.sh  play       tmp
+all.txt     notes.md  out.txt       report.sh
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ cat ~/os-lab3/oneliners.sh
+# Q1. How many requests failed?
+grep -c FAIL access.log
+# Q2. How many different pages were requested, and which?
+cut -d' ' -f5 access.log | sort -u | wc -l ; cut -d' ' -f5 access.log | sort -u
+# Q3. How many requests did each page get?
+cut -d' ' -f5 access.log | sort | uniq -c
+# Q4. Which user(s) have the most failed requests, and how many?
+grep FAIL access.log | cut -d' ' -f3 | sort | uniq -c | sort -rn | awk 'NR==1{m=$1} $1==m'
+# Q5. How many requests did user3 make, and how many of them failed?
+echo "total: $(grep -c ' user3 ' access.log) failed: $(grep ' user3 ' access.log | grep -c FAIL)"
+# Q6. Last 3 failed requests, only time and user
+grep FAIL access.log | tail -3 | cut -d' ' -f2,3
+# Q7. Login shells in /etc/passwd and how many accounts use each
+cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn
+# Q8. Why do the two ls | wc -l differ by one?
+ls /etc | wc -l ; ls -l /etc | wc -l
+# Bonus. Minute ends in 0 and request failed
+grep -cE ' 10:[0-5]0 user[0-9] FAIL ' access.log
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ cat ~/os-lab3/report.sh
+#!/bin/bash
+# usage: ./report.sh access.log
+log=$1
+if [ ! -f "$log" ]; then
+echo "no such file: $log" >&2
+exit 1
+fi
+total=$(wc -l < "$log")
+fails=$(grep -c FAIL "$log")
+echo "$total requests, $fails failed"
+for n in 0 1 2 3 4 5 6; do
+echo "user$n: $(grep -c "user$n FAIL" "$log") failures"
+done
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ mkdir -p ~/os-lab3 && cd ~/os-lab3
+for i in $(seq 1 500); do
+echo "2026-10-05 10:$(printf %02d $((i % 60))) user$((i % 7)) $([ $((i % 5)) -eq 0 ] && echo FAIL || echo OK) /page$((i % 4))"
+done > access.log
+head -3 access.log ; wc -l access.log
+2026-10-05 10:01 user1 OK /page1
+2026-10-05 10:02 user2 OK /page2
+2026-10-05 10:03 user3 OK /page3
+500 access.log
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ # Part 1  (press Tab twice after the first line, Tab once after the second)
+ls /usr/sh
+cd /et
+type cd ; type ls ; type echo ; which ls
+echo $PATH
+echo $PATH | tr ':' '\n'
+echo $PATH | tr ':' '\n' | wc -l
+nosuchprog ; echo "exit code: $?"
+man ls
+ls --help | head
+man -k "list directory"
+help cd
+ls: cannot access '/usr/sh': No such file or directory
+bash: cd: /et: No such file or directory
+cd is a shell builtin
+ls is aliased to `ls --color=auto'
+echo is a shell builtin
+/usr/bin/ls
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin:/snap/bin
+/usr/local/sbin
+/usr/local/bin
+/usr/sbin
+/usr/bin
+/sbin
+/bin
+/usr/games
+/usr/local/games
+/snap/bin
+/snap/bin
+10
+nosuchprog: command not found
+exit code: 127
+List directory contents.
+Ignore files and directories starting with a '.' by default
+
+Usage: ls [OPTION]... [FILE]...
+
+Arguments:
+  [paths]...  
+
+Options:
+      --help
+dir (1)              - List directory contents. Ignore files and directories ...
+gnudir (1)           - list directory contents
+gnuls (1)            - list directory contents
+gnuvdir (1)          - list directory contents
+ls (1)               - List directory contents. Ignore files and directories ...
+ntfsls (8)           - list directory contents on an NTFS filesystem
+rust-dir (1)         - List directory contents. Ignore files and directories ...
+rust-ls (1)          - List directory contents. Ignore files and directories ...
+rust-vdir (1)        - List directory contents. Ignore files and directories ...
+vdir (1)             - List directory contents. Ignore files and directories ...
+cd: cd [-L|[-P [-e]]] [-@] [dir]
+    Change the shell working directory.
+    
+    Change the current directory to DIR.  The default DIR is the value of the
+    HOME shell variable. If DIR is "-", it is converted to $OLDPWD.
+    
+    The variable CDPATH defines the search path for the directory containing
+    DIR.  Alternative directory names in CDPATH are separated by a colon (:).
+    A null directory name is the same as the current directory.  If DIR begins
+    with a slash (/), then CDPATH is not used.
+    
+    If the directory is not found, and the shell option `cdable_vars' is set,
+    the word is assumed to be  a variable name.  If that variable has a value,
+    its value is used for DIR.
+    
+    Options:
+      -L	force symbolic links to be followed: resolve symbolic
+    		links in DIR after processing instances of `..'
+      -P	use the physical directory structure without following
+    		symbolic links: resolve symbolic links in DIR before
+    		processing instances of `..'
+      -e	if the -P option is supplied, and the current working
+    		directory cannot be determined successfully, exit with
+    		a non-zero status
+      -@	on systems that support it, present a file with extended
+    		attributes as a directory containing the file attributes
+    
+    The default is to follow symbolic links, as if `-L' were specified.
+    `..' is processed by removing the immediately previous pathname component
+    back to a slash or the beginning of DIR.
+    
+    Exit Status:
+    Returns 0 if the directory is changed, and if $PWD is set successfully when
+    -P is used; non-zero otherwise.
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ mkdir -p ~/os-lab3/play && cd ~/os-lab3/play
+touch a.c b.c file1.txt file2.txt notes.txt "alfa beta.txt"
+ls
+echo *.c
+echo file?.txt
+echo [a-b]*
+echo *.xyz
+ls alfa beta.txt
+ls "alfa beta.txt"
+ls alfa\ beta.txt
+echo '$HOME' "$HOME" \$HOME
+echo {1..5} ; echo $((7 * 6))
+echo "today is $(date +%A), I am $(whoami)"
+touch log{1..3}.txt && ls log*
+ a.c              b.c         file2.txt   log2.txt   notes.txt
+'alfa beta.txt'   file1.txt   log1.txt    log3.txt
+a.c b.c
+file1.txt file2.txt
+a.c alfa beta.txt b.c
+*.xyz
+ls: cannot access 'alfa': No such file or directory
+ls: cannot access 'beta.txt': No such file or directory
+'alfa beta.txt'
+'alfa beta.txt'
+$HOME /home/dalvgame $HOME
+1 2 3 4 5
+42
+today is Friday, I am dalvgame
+log1.txt  log2.txt  log3.txt
+dalvgame@dalvgame-VirtualBox:~/os-lab3/play$ cd ~/os-lab3
+ls /etc /nope > out.txt 2> err.txt
+wc -l out.txt ; cat err.txt
+ls /etc /nope > all.txt 2>&1 ; tail -2 all.txt ; grep -c nope all.txt
+ls /etc /nope 2>&1 > all.txt ; tail -2 all.txt ; grep -c nope all.txt
+echo first > notes.md ; echo second >> notes.md ; cat notes.md
+wc -l < access.log
+wc -l access.log
+ls /nope 2> /dev/null || echo "failed with code $?"
+mkdir -p tmp && cd tmp && echo "I am in $(pwd)" ; cd ~/os-lab3
+sleep 100 &
+jobs ; kill %1 ; jobs
+238 out.txt
+ls: cannot access '/nope': No such file or directory
+xml
+zsh_command_not_found
+1
+ls: cannot access '/nope': No such file or directory
+xml
+zsh_command_not_found
+0
+first
+second
+500
+500 access.log
+failed with code 2
+I am in /home/dalvgame/os-lab3/tmp
+[1] 6483
+[1]+  Running                    sleep 100 &
+[1]+  Running                    sleep 100 &
+[1]+  Terminated                 sleep 100
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ 
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ cd ~/os-lab3
+cat > oneliners.sh << 'EOF'
+# Q1. How many requests failed?
+grep -c FAIL access.log
+# Q2. How many different pages were requested, and which?
+cut -d' ' -f5 access.log | sort -u | wc -l ; cut -d' ' -f5 access.log | sort -u
+# Q3. How many requests did each page get?
+cut -d' ' -f5 access.log | sort | uniq -c
+# Q4. Which user(s) have the most failed requests, and how many?
+grep FAIL access.log | cut -d' ' -f3 | sort | uniq -c | sort -rn | awk 'NR==1{m=$1} $1==m'
+# Q5. How many requests did user3 make, and how many of them failed?
+echo "total: $(grep -c ' user3 ' access.log) failed: $(grep ' user3 ' access.log | grep -c FAIL)"
+# Q6. Last 3 failed requests, only time and user
+grep FAIL access.log | tail -3 | cut -d' ' -f2,3
+# Q7. Login shells in /etc/passwd and how many accounts use each
+cut -d: -f7 /etc/passwd | sort | uniq -c | sort -rn
+# Q8. Why do the two ls | wc -l differ by one?
+ls /etc | wc -l ; ls -l /etc | wc -l
+# Bonus. Minute ends in 0 and request failed
+grep -cE ' 10:[0-5]0 user[0-9] FAIL ' access.log
+EOF
+cat > report.sh << 'EOF'
+#!/bin/bash
+# usage: ./report.sh access.log
+log=$1
+if [ ! -f "$log" ]; then
+echo "no such file: $log" >&2
+exit 1
+fi
+total=$(wc -l < "$log")
+fails=$(grep -c FAIL "$log")
+echo "$total requests, $fails failed"
+for n in 0 1 2 3 4 5 6; do
+echo "user$n: $(grep -c "user$n FAIL" "$log") failures"
+done
+EOF
+bash oneliners.sh
+rm -f report.sh.bak
+./report.sh access.log
+chmod +x report.sh
+./report.sh access.log
+./report.sh nope.log ; echo "exit code: $?"
+100
+4
+/page0
+/page1
+/page2
+/page3
+    125 /page0
+    125 /page1
+    125 /page2
+    125 /page3
+     15 user5
+     15 user3
+total: 72 failed: 15
+10:10 user0
+10:15 user5
+10:20 user3
+     40 /usr/sbin/nologin
+      5 /bin/false
+      2 /bin/bash
+      1 /bin/sync
+237
+238
+50
+500 requests, 100 failed
+user0: 14 failures
+user1: 14 failures
+user2: 14 failures
+user3: 15 failures
+user4: 14 failures
+user5: 15 failures
+user6: 14 failures
+500 requests, 100 failed
+user0: 14 failures
+user1: 14 failures
+user2: 14 failures
+user3: 15 failures
+user4: 14 failures
+user5: 15 failures
+user6: 14 failures
+no such file: nope.log
+exit code: 1
+dalvgame@dalvgame-VirtualBox:~/os-lab3$ 
