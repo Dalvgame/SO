@@ -1,0 +1,561 @@
+dalvgame@dalvgame-VirtualBox:~/os-lab7$ cd ~/xv6-riscv
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu 
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+
+xv6 kernel is booting
+
+
+
+hart 2 starting
+
+hart 1 starting
+
+init: starting sh
+
+$ QEMU: Terminated
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ mkdir -p ~/lab8
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cat > user/run.c << 'EOF'
+
+#include "kernel/types.h"
+
+#include "user/user.h"
+
+
+
+// the three steps of the shell, inside xv6: echo hello from the child
+
+int
+
+main(int argc, char *argv[])
+
+{
+
+  printf("parent: my pid is %d\n", getpid());
+
+  int pid = fork();                    // step 1: copy myself
+
+  if(pid < 0){
+
+    printf("fork failed\n");
+
+    exit(1);
+
+  }
+
+  if(pid == 0){                        // only the child runs this
+
+    printf("child: my pid is %d\n", getpid());
+
+    char *args[] = { "echo", "hello", "from", "the", "child", 0 };
+
+    exec("echo", args);                // step 2: become echo
+
+    printf("exec failed\n");           // runs only if exec failed
+
+    exit(1);
+
+  }
+
+  int status;
+
+  wait(&status);                       // step 3: wait for the child
+
+  printf("parent: child %d ended with status %d\n", pid, status);
+
+  exit(0);
+
+}
+
+EOF
+
+cp user/run.c ~/lab8/run.c.original
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n "_run\|_pingpong" Makefile
+
+148:	$U/_run\
+
+149:	$U/_pingpong\
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ sed -i 's|^\t\$U/_find\\$|&\n\t$U/_run\\\n\t$U/_pingpong\\|' Makefile
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n -A3 '_find\\' Makefile
+
+147:	$U/_find\
+
+148-	$U/_run\
+
+149-	$U/_pingpong\
+
+150-	$U/_run\
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ 
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cat > user/pingpong.c << 'EOF'
+
+#include "kernel/types.h"
+
+#include "user/user.h"
+
+
+
+int
+
+main(int argc, char *argv[])
+
+{
+
+  int p2c[2], c2p[2];   // parent-to-child, child-to-parent
+
+  char b = 'x';
+
+
+
+  pipe(p2c);
+
+  pipe(c2p);
+
+  if(fork() == 0){
+
+    close(p2c[1]); close(c2p[0]);   // the ends the child does not use
+
+    read(p2c[0], &b, 1);
+
+    printf("%d: received ping\n", getpid());
+
+    write(c2p[1], &b, 1);
+
+    exit(0);
+
+  }
+
+  close(p2c[0]); close(c2p[1]);     // the ends the parent does not use
+
+  write(p2c[1], &b, 1);
+
+  read(c2p[0], &b, 1);
+
+  printf("%d: received pong\n", getpid());
+
+  wait(0);
+
+  exit(0);
+
+}
+
+EOF
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cat > user/pingpong.c << 'EOF'
+
+#include "kernel/types.h"
+
+#include "user/user.h"
+
+
+
+int
+
+main(int argc, char *argv[])
+
+{
+
+  int p2c[2], c2p[2];   // parent-to-child, child-to-parent
+
+  char b = 'x';
+
+
+
+  pipe(p2c);
+
+  pipe(c2p);
+
+  if(fork() == 0){
+
+    close(p2c[1]); close(c2p[0]);   // the ends the child does not use
+
+    read(p2c[0], &b, 1);
+
+    printf("%d: received ping\n", getpid());
+
+    write(c2p[1], &b, 1);
+
+    exit(0);
+
+  }
+
+  close(p2c[0]); close(c2p[1]);     // the ends the parent does not use
+
+  write(p2c[1], &b, 1);
+
+  read(c2p[0], &b, 1);
+
+  printf("%d: received pong\n", getpid());
+
+  wait(0);
+
+  exit(0);
+
+}
+
+EOF
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu
+
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/run.o user/run.c
+
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_run user/run.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+
+riscv64-linux-gnu-objdump -S user/_run > user/run.asm
+
+riscv64-linux-gnu-objdump -t user/_run | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/run.sym
+
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/pingpong.o user/pingpong.c
+
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_pingpong user/pingpong.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+
+riscv64-linux-gnu-objdump -S user/_pingpong > user/pingpong.asm
+
+riscv64-linux-gnu-objdump -t user/_pingpong | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/pingpong.sym
+
+mkfs/mkfs fs.img README user/_cat user/_echo user/_forktest user/_grep user/_init user/_kill user/_ln user/_ls user/_mkdir user/_rm user/_sh user/_sleep user/_args user/_mystat user/_find user/_run user/_pingpong user/_run user/_pingpong user/_stressfs user/_usertests user/_grind user/_wc user/_zombie user/_logstress user/_forphan user/_dorphan user/_sync 
+
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+
+balloc: first 1283 blocks have been allocated
+
+balloc: write bitmap block at sector 46
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+
+xv6 kernel is booting
+
+
+
+hart 2 starting
+
+hart 1 starting
+
+init: starting sh
+
+$ run
+
+parent: my pid is 3
+
+child: my pid is 4
+
+hello from the child
+
+parent: child 4 ended with status 0
+
+$ pingpong
+
+6: received ping
+
+5: received pong
+
+$ cd ~/xv6-riscv
+
+cannot cd ~/xv6-riscv
+
+$ QEMU: Terminated
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ sed 's|char \*args\[\] = { "echo", "hello", "from", "the", "child", 0 };|char *args[] = { "ls", 0 };|; s|exec("echo", args);|exec("ls", args);|' ~/lab8/run.c.original > user/run.c
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ grep -n 'ls' user/run.c
+
+16:    char *args[] = { "ls", 0 };
+
+17:    exec("ls", args);                // step 2: become echo
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu
+
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/run.o user/run.c
+
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_run user/run.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+
+riscv64-linux-gnu-objdump -S user/_run > user/run.asm
+
+riscv64-linux-gnu-objdump -t user/_run | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/run.sym
+
+mkfs/mkfs fs.img README user/_cat user/_echo user/_forktest user/_grep user/_init user/_kill user/_ln user/_ls user/_mkdir user/_rm user/_sh user/_sleep user/_args user/_mystat user/_find user/_run user/_pingpong user/_run user/_pingpong user/_stressfs user/_usertests user/_grind user/_wc user/_zombie user/_logstress user/_forphan user/_dorphan user/_sync 
+
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+
+balloc: first 1283 blocks have been allocated
+
+balloc: write bitmap block at sector 46
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+
+xv6 kernel is booting
+
+
+
+hart 2 starting
+
+hart 1 starting
+
+init: starting sh
+
+$ run
+
+parent: my pid is 3
+
+child: my pid is 4
+
+.              1 1 1024
+
+..             1 1 1024
+
+README         2 2 2441
+
+cat            2 3 36728
+
+echo           2 4 35592
+
+forktest       2 5 18136
+
+grep           2 6 44184
+
+init           2 7 35976
+
+kill           2 8 35512
+
+ln             2 9 35304
+
+ls             2 10 42880
+
+mkdir          2 11 35568
+
+rm             2 12 35552
+
+sh             2 13 58312
+
+sleep          2 14 35280
+
+args           2 15 35272
+
+mystat         2 16 36320
+
+find           2 17 43000
+
+run            2 18 35888
+
+pingpong       2 19 35872
+
+run            2 18 35888
+
+pingpong       2 19 35872
+
+stressfs       2 22 36416
+
+usertests      2 23 206800
+
+grind          2 24 51824
+
+wc             2 25 37728
+
+zombie         2 26 34848
+
+logstress      2 27 37560
+
+forphan        2 28 36352
+
+dorphan        2 29 35800
+
+sync           2 30 34944
+
+console        3 31 0
+
+parent: child 4 ended with status 0
+
+$ QEMU: Terminated
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ sed 's|exec("echo", args);|exec("nosuchprog", args);|' ~/lab8/run.c.original > user/run.c
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ make qemu
+
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/run.o user/run.c
+
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_run user/run.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+
+riscv64-linux-gnu-objdump -S user/_run > user/run.asm
+
+riscv64-linux-gnu-objdump -t user/_run | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/run.sym
+
+mkfs/mkfs fs.img README user/_cat user/_echo user/_forktest user/_grep user/_init user/_kill user/_ln user/_ls user/_mkdir user/_rm user/_sh user/_sleep user/_args user/_mystat user/_find user/_run user/_pingpong user/_run user/_pingpong user/_stressfs user/_usertests user/_grind user/_wc user/_zombie user/_logstress user/_forphan user/_dorphan user/_sync 
+
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+
+balloc: first 1283 blocks have been allocated
+
+balloc: write bitmap block at sector 46
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+
+xv6 kernel is booting
+
+
+
+hart 1 starting
+
+hart 2 starting
+
+init: starting sh
+
+$ run
+
+parent: my pid is 3
+
+child: my pid is 4
+
+exec failed
+
+parent: child 4 ended with status 1
+
+$ QEMU: Terminated
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cp ~/lab8/run.c.original ~/xv6-riscv/user/run.c
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/xv6-riscv && make qemu
+
+riscv64-linux-gnu-gcc -Wall -Werror -Wno-unknown-attributes -O -fno-omit-frame-pointer -ggdb -gdwarf-2 -ffile-prefix-map=/home/dalvgame/xv6-riscv=. -march=rv64gc -std=gnu99 -MD -mcmodel=medany -ffreestanding -fno-common -nostdlib -fno-builtin-strncpy -fno-builtin-strncmp -fno-builtin-strlen -fno-builtin-memset -fno-builtin-memmove -fno-builtin-memcmp -fno-builtin-log -fno-builtin-bzero -fno-builtin-strchr -fno-builtin-exit -fno-builtin-malloc -fno-builtin-putc -fno-builtin-free -fno-builtin-memcpy -Wno-main -fno-builtin-printf -fno-builtin-fprintf -fno-builtin-vprintf -I. -fno-stack-protector -fno-pie -no-pie   -c -o user/run.o user/run.c
+
+riscv64-linux-gnu-ld -z max-page-size=4096 -T user/user.ld -o user/_run user/run.o user/ulib.o user/usys.o user/printf.o user/umalloc.o
+
+riscv64-linux-gnu-objdump -S user/_run > user/run.asm
+
+riscv64-linux-gnu-objdump -t user/_run | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$/d' > user/run.sym
+
+mkfs/mkfs fs.img README user/_cat user/_echo user/_forktest user/_grep user/_init user/_kill user/_ln user/_ls user/_mkdir user/_rm user/_sh user/_sleep user/_args user/_mystat user/_find user/_run user/_pingpong user/_run user/_pingpong user/_stressfs user/_usertests user/_grind user/_wc user/_zombie user/_logstress user/_forphan user/_dorphan user/_sync 
+
+nmeta 47 (boot, super, log blocks 31, inode blocks 13, bitmap blocks 1) blocks 1953 total 2000
+
+balloc: first 1283 blocks have been allocated
+
+balloc: write bitmap block at sector 46
+
+qemu-system-riscv64 -machine virt -bios none -kernel kernel/kernel -m 128M -smp 3 -nographic -global virtio-mmio.force-legacy=false -drive file=fs.img,if=none,format=raw,id=x0 -device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
+
+
+
+xv6 kernel is booting
+
+
+
+hart 1 starting
+
+hart 2 starting
+
+init: starting sh
+
+$ run
+
+parent: my pid is 3
+
+child: my pid is 4
+
+hello from the child
+
+parent: child 4 ended with status 0
+
+$ QEMU: Terminated
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cp ~/xv6-riscv/user/run.c ~/xv6-riscv/user/pingpong.c ~/xv6-riscv/Makefile ~/lab8/
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ rm -f ~/lab8/run.c.original
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ touch ~/lab8/notes.md
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cp -r ~/lab8 /media/sf_OS-labs/
+
+dalvgame@dalvgame-VirtualBox:~/xv6-riscv$ cd ~/SO
+
+git status -sb
+
+git pull --rebase origin main
+
+
+
+mkdir -p ~/SO/lab7 ~/SO/lab8
+
+cp ~/os-lab7/run.c ~/os-lab7/zombie.c ~/os-lab7/redirect.c ~/os-lab7/pipeline.c ~/os-lab7/report.md ~/SO/lab7/
+
+cp ~/lab8/run.c ~/lab8/pingpong.c ~/lab8/Makefile ~/lab8/notes.md ~/SO/lab8/
+
+ls ~/SO/lab7 ~/SO/lab8
+
+## main...origin/main
+
+?? "lab1-session (Copy).txt"
+
+remote: Enumerating objects: 33, done.
+
+remote: Counting objects: 100% (33/33), done.
+
+remote: Compressing objects: 100% (17/17), done.
+
+remote: Total 26 (delta 12), reused 23 (delta 9), pack-reused 0 (from 0)
+
+Unpacking objects: 100% (26/26), 3.91 MiB | 9.30 MiB/s, done.
+
+From https://github.com/Dalvgame/SO
+
+ * branch            main       -> FETCH_HEAD
+
+   ba692cf..2a20db3  main       -> origin/main
+
+Updating ba692cf..2a20db3
+
+Fast-forward
+
+ lab3/report.pdf | Bin 1188213 -> 1111334 bytes
+
+ lab4/report.pdf | Bin 838263 -> 884695 bytes
+
+ lab5/lab 5.txt  | 251 ++++++++++++++++++++++++++++++++++++++++++
+
+ lab5/report.pdf | Bin 0 -> 715343 bytes
+
+ lab6/lab 6.txt  | 331 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ lab6/report.pdf | Bin 0 -> 531950 bytes
+
+ 6 files changed, 582 insertions(+)
+
+ create mode 100644 lab5/lab 5.txt
+
+ create mode 100644 lab5/report.pdf
+
+ create mode 100644 lab6/lab 6.txt
+
+ create mode 100644 lab6/report.pdf
+
+/home/dalvgame/SO/lab7:
+
+pipeline.c  redirect.c  report.md  run.c  zombie.c
+
+
+
+/home/dalvgame/SO/lab8:
+
+Makefile  notes.md  pingpong.c  run.c
