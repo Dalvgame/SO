@@ -1,0 +1,14 @@
+Lab 10 - trace: answers
+
+1. Why only read, and not open or close, in "trace 32 grep hello README"?
+   The mask is a bit set: bit N on means "print call number N". 32 = 2^5 and SYS_read is 5, so only read is on. open (15) and close (21) are not in the mask, so they are not printed (they still happen).
+
+2. Which line of Part 2 lets three pids print in forkforkfork?
+   np->trace_mask = p->trace_mask;   (kernel/proc.c, in fork)
+   Every child copies the mask of its parent, so all the descendants are traced as well.
+
+3. Why is the trace line printed between "hi" and the new line in "trace 65536 echo hi"?
+   echo calls write twice: once for "hi" (2 bytes) and once for the "\n" (1 byte). The kernel prints the trace line after each call has finished, so "69: syscall write -> 2" comes right after "hi" and before the newline is written; the second trace line (-> 1) comes after the newline.
+
+4. Which mask traces open (15) and close (21), and nothing else?
+   2^15 + 2^21 = 32768 + 2097152 = 2129920
